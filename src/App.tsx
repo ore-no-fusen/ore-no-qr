@@ -87,7 +87,8 @@ function App() {
       // URL入力（生成）と同時に紙吹雪を舞わせる
       try {
         const confettiModule = await import('canvas-confetti');
-        const fireConfetti = confettiModule.default || confettiModule;
+        type ConfettiFn = (opts: Record<string, unknown>) => void;
+        const fireConfetti = (confettiModule.default ?? confettiModule) as unknown as ConfettiFn;
         fireConfetti({
           particleCount: 60,
           spread: 70,
