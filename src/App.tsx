@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
 import StickyNote from './components/StickyNote';
 import './index.css';
 
