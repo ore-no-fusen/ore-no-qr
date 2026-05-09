@@ -17,7 +17,6 @@ function App() {
     totalSaves: 0
   });
 
-  const successMessages = ['成功！', 'おめでとう！', 'やったね！', 'できたね！'];
 
   // 今日の日付文字列（YYYY-MM-DD）を取得する関数
   const getTodayStr = () => {
@@ -72,13 +71,14 @@ function App() {
   // スピード計測
   useEffect(() => {
     if (!url) {
-      setGenerateTime('0.000');
-      return;
+      // requestAnimationFrameを使ってEffect外でstateを更新
+      const id = requestAnimationFrame(() => setGenerateTime('0.000'));
+      return () => cancelAnimationFrame(id);
     }
     const start = performance.now();
     
     // Reactの描画サイクル直後に時間を計測
-    requestAnimationFrame(async () => {
+    const rafId = requestAnimationFrame(async () => {
       const end = performance.now();
       // 0.000秒にならないよう、実際の処理速度に微細な乱数を足して「リアルな超高速タイム」を演出
       const time = Math.max(0.001, ((end - start) / 1000) + (Math.random() * 0.004)).toFixed(3);
@@ -89,7 +89,7 @@ function App() {
         const confettiModule = await import('canvas-confetti');
         const fireConfetti = confettiModule.default || confettiModule;
         fireConfetti({
-          particleCount: 60, // 文字を打つたびに出るかもしれないので少し控えめに
+          particleCount: 60,
           spread: 70,
           origin: { y: 0.6 }
         });
@@ -97,12 +97,14 @@ function App() {
         console.error("Confetti error:", e);
       }
       
-      const randomMsg = successMessages[Math.floor(Math.random() * successMessages.length)];
+      const msgs = ['成功！', 'おめでとう！', 'やったね！', 'できたね！'];
+      const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
       setSuccessMessage(randomMsg);
       
       // 2秒後にメッセージを消す
       setTimeout(() => setSuccessMessage(null), 2000);
     });
+    return () => cancelAnimationFrame(rafId);
   }, [url, withLogo]);
 
   const handleDownload = async () => {
@@ -149,7 +151,7 @@ function App() {
 
     try {
       if ('showSaveFilePicker' in window) {
-        const handle = await (window as any).showSaveFilePicker({
+        const handle = await (window as unknown as { showSaveFilePicker: (opts: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
           suggestedName: '俺のQR.png',
           types: [{
             description: 'PNG 画像',
@@ -193,9 +195,9 @@ function App() {
         console.error("Firestoreの更新エラー:", error);
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       // ユーザーがキャンセルした場合（AbortError）は無視する
-      if (err.name !== 'AbortError') {
+      if (!(err instanceof Error) || err.name !== 'AbortError') {
         console.error('保存に失敗しました:', err);
         alert('保存に失敗しました。ブラウザの設定等をご確認ください。');
       }
