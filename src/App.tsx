@@ -158,6 +158,30 @@ function App() {
         await writable.write(blob);
         await writable.close();
       } else {
+        // スマホ等向けのフォールバック処理
+        const file = new File([blob], '俺のQR.png', { type: 'image/png' });
+        
+        // Web Share API（ネイティブの共有メニュー）が使える場合
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: '俺のQR',
+            });
+            // シェア成功ならそのまま終了
+          } catch (e: any) {
+            // キャンセルされた場合は何もしない、それ以外のエラーはaタグへフォールバック
+            if (e.name !== 'AbortError') {
+              forceDownload(blob);
+            }
+          }
+        } else {
+          // Share APIが使えない場合の最終手段
+          forceDownload(blob);
+        }
+      }
+
+      function forceDownload(blob: Blob) {
         const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objectUrl;
