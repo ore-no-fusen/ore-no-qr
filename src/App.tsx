@@ -4,6 +4,8 @@ import { db } from './firebase';
 import StickyNote from './components/StickyNote';
 import './index.css';
 
+declare const __APP_VERSION__: string;
+
 function App() {
   const [url, setUrl] = useState('');
   const [withLogo, setWithLogo] = useState(true);
@@ -326,6 +328,17 @@ function App() {
           </a>
         </div>
       </div>
+
+      {/* Footer / Version Info */}
+      <footer style={{ 
+        textAlign: 'center', 
+        marginTop: '-1rem', 
+        color: 'rgba(255, 255, 255, 0.3)', 
+        fontSize: '0.8rem',
+        fontFamily: 'monospace'
+      }}>
+        v{__APP_VERSION__}
+      </footer>
 
     </div>
   );
