@@ -40,34 +40,33 @@ graph TD
         E["⑤ Push (VSCodeソース管理)"]
         F[1️⃣ Vercelプレビュー生成]
         G{⑥ プレビュー確認}
-        H["⑦ Pull Request (GitHub)"]
-        I[2️⃣ 自動E2Eテスト]
         E --> F --> G
         G -->|NG| B
+    end
+
+    subgraph PC_REL ["💻 自PC / release"]
+        H["⑦ npm run release (Terminal)"]
+        I[2️⃣ Releaseノート・タグ自動作成]
         G -->|OK| H --> I
-        I -->|NG| B
     end
 
     subgraph GH_PROD ["🚀 GitHub / main"]
-        J["⑧ マージ承認 (GitHub)"]
-        K((3️⃣ Vercel本番デプロイ))
-        L[4️⃣ Releaseノート作成]
-        J --> K --> L
-    end
-
-    subgraph PC_PROD ["💻 自PC / release"]
-        M["⑨ npm run release (Terminal)"]
+        J["⑧ Pull Request (GitHub)"]
+        K[3️⃣ 自動E2Eテスト]
+        L["⑨ マージ承認 (GitHub)"]
+        M((4️⃣ Vercel本番デプロイ))
+        I --> J --> K
+        K -->|NG| B
+        K -->|OK| L --> M
     end
 
     D --> E
-    I -->|OK| J
-    K --> M
 
     classDef human fill:#1f2937,stroke:#374151,stroke-width:2px,color:#f3f4f6;
     classDef auto fill:#065f46,stroke:#047857,stroke-width:2px,color:#ffffff;
 
-    class A,B,C,D,E,G,H,J,M human;
-    class F,I,K,L auto;
+    class A,B,C,D,E,G,H,J,L human;
+    class F,I,K,M auto;
 ```
 
 ---
@@ -77,17 +76,17 @@ graph TD
 | # | トリガー | 内容 |
 |---|------|------|
 | 1️⃣ | developへPush時 | VercelがプレビューURLを自動生成 |
-| 2️⃣ | Pull Request作成時 | GitHub ActionsがPlaywright自動テストを実行 |
-| 3️⃣ | mainへマージ時 | Vercelが本番環境へ自動デプロイ |
-| 4️⃣ | `npm run release`実行時 | GitHubにReleaseノートを自動作成 |
+| 2️⃣ | `npm run release`実行時 | GitHubにReleaseノート・タグを自動作成 |
+| 3️⃣ | Pull Request作成時 | GitHub ActionsがPlaywright自動テストを実行 |
+| 4️⃣ | mainへマージ時 | Vercelが本番環境へ自動デプロイ |
 
 > **Note:** `src/` や `tests/` 以外の変更（OGP画像・ドキュメントなど）ではテストはスキップされる。
 
 ---
 
-## ⑨ バージョン付けの詳細（`npm run release`）
+## ⑦ バージョン付けの詳細（`npm run release`）
 
-本番デプロイ後、**このタイミングで初めてバージョン番号を付ける。** コミットやPushのたびにバージョンを上げる必要はない。
+プレビュー確認で問題がなければ、Pull Requestを作る**前**にバージョン番号を付ける。
 
 ```bash
 # 小さな修正・バグフィックス（例: 1.1.1 -> 1.1.2）
