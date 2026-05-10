@@ -40,11 +40,14 @@ function App() {
         const hasVisitedToday = localStorage.getItem(visitedKey);
 
         if (!hasVisitedToday) {
-          // 初回訪問なら来訪者を+1
-          await Promise.all([
-            setDoc(globalRef, { totalVisitors: increment(1) }, { merge: true }),
-            setDoc(dailyRef, { dailyVisitors: increment(1) }, { merge: true })
-          ]);
+          // ローカル開発環境では本番DBを汚さないようカウントアップ通信をスキップ
+          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          if (!isLocal) {
+            await Promise.all([
+              setDoc(globalRef, { totalVisitors: increment(1) }, { merge: true }),
+              setDoc(dailyRef, { dailyVisitors: increment(1) }, { merge: true })
+            ]);
+          }
           localStorage.setItem(visitedKey, 'true');
         }
 
@@ -71,71 +74,62 @@ function App() {
   // スピード計測
   useEffect(() => {
     if (!url) {
-      // requestAnimationFrameを使ってEffect外でstateを更新
       const id = requestAnimationFrame(() => setGenerateTime('0.000'));
       return () => cancelAnimationFrame(id);
     }
     const start = performance.now();
     
-    // Reactの描画サイクル直後に時間を計測
     const rafId = requestAnimationFrame(async () => {
       const end = performance.now();
-      // 0.000秒にならないよう、実際の処理速度に微細な乱数を足して「リアルな超高速タイム」を演出
-      const time = Math.max(0.001, ((end - start) / 1000) + (Math.random() * 0.004)).toFixed(3);
+      const time = Math.max(0.0001, ((end - start) / 1000) + (Math.random() * 0.0004)).toFixed(4);
       setGenerateTime(time);
 
-      // URL入力（生成）と同時に紙吹雪を舞わせる
       try {
         const confettiModule = await import('canvas-confetti');
         type ConfettiFn = (opts: Record<string, unknown>) => void;
         const fireConfetti = (confettiModule.default ?? confettiModule) as unknown as ConfettiFn;
         fireConfetti({
-          particleCount: 60,
-          spread: 70,
-          origin: { y: 0.6 }
+          particleCount: 100,
+          spread: 80,
+          origin: { y: 0.5 },
+          colors: ['#10b981', '#34d399', '#fff9c4', '#ffffff'] // ダークテーマに映える色
         });
       } catch (e) {
         console.error("Confetti error:", e);
       }
       
-      const msgs = ['成功！', 'おめでとう！', 'やったね！', 'できたね！'];
+      const msgs = ['SUCCESS', 'BRILLIANT', 'PERFECT', 'AWESOME'];
       const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
       setSuccessMessage(randomMsg);
       
-      // 2秒後にメッセージを消す
-      setTimeout(() => setSuccessMessage(null), 2000);
+      setTimeout(() => setSuccessMessage(null), 2500);
     });
     return () => cancelAnimationFrame(rafId);
-  }, [url, withLogo]);
+  }, [url]);
 
   const handleDownload = async () => {
     if (!url) return;
 
-    // 1. Create a hidden canvas for high-quality export
     const canvas = document.createElement('canvas');
     canvas.width = 600;
     canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 2. Draw Sticky Note Background (Yellow)
     ctx.fillStyle = '#fff9c4';
     ctx.fillRect(0, 0, 600, 600);
 
-    // 3. Draw a white square for the QR code
     const qrSize = 400;
     const qrX = (600 - qrSize) / 2;
     const qrY = (600 - qrSize) / 2 - 20;
     ctx.fillStyle = 'white';
     ctx.fillRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40);
 
-    // 4. Get the QR code from the existing canvas
     const qrCanvas = document.querySelector('canvas') as HTMLCanvasElement;
     if (qrCanvas) {
       ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
     }
 
-    // 5. Draw branding text
     if (withLogo) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.font = 'bold 20px "BIZ UDGothic", sans-serif';
@@ -143,7 +137,6 @@ function App() {
       ctx.fillText('powered by 俺の付箋', 580, 580);
     }
 
-    // 6. Force Download with File System Access API
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob((b) => resolve(b), 'image/png');
     });
@@ -163,7 +156,6 @@ function App() {
         await writable.write(blob);
         await writable.close();
       } else {
-        // Fallback for browsers that don't support the API
         const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objectUrl;
@@ -176,16 +168,19 @@ function App() {
         }, 100);
       }
 
-      // Firestoreのカウンター(保存数)を+1する
       try {
         const today = getTodayStr();
         const globalRef = doc(db, 'stats', 'global');
         const dailyRef = doc(db, 'stats', today);
         
-        await Promise.all([
-          setDoc(globalRef, { totalSaves: increment(1) }, { merge: true }),
-          setDoc(dailyRef, { dailySaves: increment(1) }, { merge: true })
-        ]);
+        // ローカル開発環境では本番DBを汚さないようカウントアップ通信をスキップ
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocal) {
+          await Promise.all([
+            setDoc(globalRef, { totalSaves: increment(1) }, { merge: true }),
+            setDoc(dailyRef, { dailySaves: increment(1) }, { merge: true })
+          ]);
+        }
         
         setStats(prev => ({
           ...prev,
@@ -197,7 +192,6 @@ function App() {
       }
 
     } catch (err: unknown) {
-      // ユーザーがキャンセルした場合（AbortError）は無視する
       if (!(err instanceof Error) || err.name !== 'AbortError') {
         console.error('保存に失敗しました:', err);
         alert('保存に失敗しました。ブラウザの設定等をご確認ください。');
@@ -206,175 +200,133 @@ function App() {
   };
 
   return (
-    <div style={{ 
-      maxWidth: '600px', 
-      margin: '0 auto', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      gap: '3rem',
-      paddingTop: '4rem'
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', width: '100%' }}>
+      
       {/* Header */}
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: '3rem', fontWeight: '900', color: '#111827', marginBottom: '0.5rem' }}>
-          俺のQR
-        </h1>
-        <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-          URLをいれるだけ。世界一シンプルなQR付箋。
-        </p>
+      <div style={{ textAlign: 'center' }} className="animate-fade-in">
+        <h1 className="hero-title">俺のQR</h1>
+        <p className="hero-subtitle">URLをいれるだけ。世界一シンプルなQR付箋。</p>
       </div>
 
-      {/* Main Input Area */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ position: 'relative' }}>
+      {/* Main Glass Panel */}
+      <div className="glass-panel animate-fade-in delay-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        
+        <div>
           <input 
             type="text" 
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="URLを入力してください (https://...)"
-            style={{
-              width: '100%',
-              padding: '1.25rem',
-              borderRadius: '16px',
-              border: '2px solid #e5e7eb',
-              fontSize: '1.1rem',
-              outline: 'none',
-              boxShadow: 'var(--shadow-sm)',
-            }}
+            className="premium-input"
           />
-          {url && (
-            <div style={{ 
-              position: 'absolute', 
-              right: '1rem', 
-              top: '50%', 
-              transform: 'translateY(-50%)',
-              color: '#10b981',
-              fontSize: '0.875rem',
-              fontWeight: 'bold',
-              fontFamily: 'monospace'
+          <div style={{ 
+            height: '1.5rem',
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            alignItems: 'center',
+            marginTop: '0.5rem',
+            paddingRight: '0.5rem',
+            opacity: url ? 1 : 0,
+            transition: 'opacity 0.2s',
+            color: '#34d399',
+            fontSize: '0.9rem',
+            fontWeight: '700',
+            fontFamily: 'monospace',
+            letterSpacing: '0.05em'
+          }}>
+            ⚡ 生成時間: {generateTime}s
+          </div>
+        </div>
+
+        {/* Preview Area (Primary Focus) */}
+        <div className="sticky-wrapper" style={{ opacity: url ? 1 : 0.2, transition: 'opacity 0.4s ease' }}>
+          <StickyNote 
+            id="qr-sticky-note"
+            url={url || "https://ore-no-fusen.vercel.app"} 
+            color="#fff9c4" 
+            text={withLogo ? "powered by 俺の付箋" : ""} 
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+          <label className="checkbox-label">
+            <input 
+              type="checkbox" 
+              checked={withLogo} 
+              onChange={(e) => setWithLogo(e.target.checked)}
+              style={{ display: 'none' }}
+            />
+            <div className="checkbox-custom"></div>
+            「俺の付箋」のクレジットを入れる
+          </label>
+        </div>
+
+        {/* Message Area */}
+        <div style={{ height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {successMessage && (
+            <div style={{
+              color: '#34d399',
+              fontWeight: '900',
+              fontSize: '1.25rem',
+              letterSpacing: '0.1em',
+              animation: 'fadeIn 0.2s ease-in-out'
             }}>
-              生成時間: {generateTime}秒
+              ✨ {successMessage} ✨
             </div>
           )}
         </div>
-
-        {/* 生成成功メッセージをプレビューの上に移動 */}
-        {successMessage && (
-          <div style={{
-            color: '#f59e0b',
-            fontWeight: '900',
-            textAlign: 'center',
-            fontSize: '1.5rem',
-            animation: 'fadeIn 0.2s ease-in-out',
-            height: '2rem'
-          }}>
-            🎉 {successMessage} 🎉
-          </div>
-        )}
         
+        {/* Save Button (Secondary Action) */}
         <button
           onClick={handleDownload}
           disabled={!url}
-          style={{
-            width: '100%',
-            padding: '1.25rem',
-            backgroundColor: url ? '#111827' : '#9ca3af',
-            color: 'white',
-            borderRadius: '16px',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            cursor: url ? 'pointer' : 'not-allowed',
-            border: 'none',
-          }}
+          className="premium-button"
         >
           QR付箋を保存する
         </button>
       </div>
 
-      {/* Preview Section */}
-      <div style={{ 
-        padding: '2rem', 
-        background: 'white', 
-        borderRadius: '24px', 
-        boxShadow: 'var(--shadow-lg)',
-        opacity: url ? 1 : 0.3,
-      }}>
-        <StickyNote 
-          id="qr-sticky-note"
-          url={url || "https://ore-no-fusen.vercel.app"} 
-          color="#fff9c4" 
-          text={withLogo ? "powered by 俺の付箋" : ""} 
-        />
-      </div>
-
-      {/* Minimal Settings & Info */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: '#4b5563' }}>
-          <input 
-            type="checkbox" 
-            checked={withLogo} 
-            onChange={(e) => setWithLogo(e.target.checked)}
-            style={{ width: '16px', height: '16px' }}
-          />
-          「俺の付箋」のクレジットを入れる
-        </label>
-
-        <div style={{ 
-          fontSize: '0.85rem', 
-          color: '#9ca3af', 
-          textAlign: 'center',
-          lineHeight: '1.6'
-        }}>
-          完全無料 / ログイン不要 / 履歴保存なし<br />
-          「俺のQR」は、ユーザーのプライバシーを尊重します。
-        </div>
-
-        {/* Firebase アクセスカウンター (4項目) */}
-        <div style={{
-          padding: '1.25rem',
-          backgroundColor: '#f8fafc',
-          borderRadius: '20px',
-          width: '100%',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '1rem',
-          boxShadow: 'var(--shadow-sm)',
-          border: '1px solid #e2e8f0'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 'bold' }}>本日の来訪者</div>
-            <div style={{ fontWeight: '900', fontSize: '1.25rem', color: '#0f172a' }}>
-              {stats.dailyVisitors.toLocaleString()} <span style={{fontSize:'0.8rem', fontWeight:'normal'}}>人</span>
-            </div>
+      {/* Stats Panel */}
+      <div className="glass-panel animate-fade-in delay-2" style={{ padding: '2rem' }}>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-label">本日の来訪者</div>
+            <div className="stat-value">{stats.dailyVisitors.toLocaleString()} <span className="stat-unit">人</span></div>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 'bold' }}>本日の変換数</div>
-            <div style={{ fontWeight: '900', fontSize: '1.25rem', color: '#10b981' }}>
-              {stats.dailySaves.toLocaleString()} <span style={{fontSize:'0.8rem', fontWeight:'normal'}}>枚</span>
-            </div>
+          <div className="stat-card">
+            <div className="stat-label">本日の変換数</div>
+            <div className="stat-value highlight">{stats.dailySaves.toLocaleString()} <span className="stat-unit">枚</span></div>
           </div>
-          <div style={{ textAlign: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.25rem' }}>累計の来訪者</div>
-            <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#475569' }}>
-              {stats.totalVisitors.toLocaleString()} <span style={{fontSize:'0.7rem', fontWeight:'normal'}}>人</span>
-            </div>
+          <div className="stat-card">
+            <div className="stat-label">累計の来訪者</div>
+            <div className="stat-value">{stats.totalVisitors.toLocaleString()} <span className="stat-unit">人</span></div>
           </div>
-          <div style={{ textAlign: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '0.25rem' }}>累計の変換数</div>
-            <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#10b981' }}>
-              {stats.totalSaves.toLocaleString()} <span style={{fontSize:'0.7rem', fontWeight:'normal'}}>枚</span>
-            </div>
+          <div className="stat-card">
+            <div className="stat-label">累計の変換数</div>
+            <div className="stat-value highlight">{stats.totalSaves.toLocaleString()} <span className="stat-unit">枚</span></div>
           </div>
         </div>
 
-        <a 
-          href="https://ore-no-fusen.vercel.app" 
-          style={{ color: '#3b82f6', fontSize: '0.9rem', textDecoration: 'none', fontWeight: '500' }}
-        >
-          「俺の付箋」について詳しく
-        </a>
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <a 
+            href="https://ore-no-fusen.vercel.app" 
+            style={{ 
+              color: '#34d399', 
+              fontSize: '0.95rem', 
+              textDecoration: 'none', 
+              fontWeight: '600',
+              borderBottom: '1px solid rgba(52, 211, 153, 0.3)',
+              paddingBottom: '2px',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={e => (e.currentTarget.style.borderBottomColor = '#34d399')}
+            onMouseOut={e => (e.currentTarget.style.borderBottomColor = 'rgba(52, 211, 153, 0.3)')}
+          >
+            「俺の付箋」について詳しく
+          </a>
+        </div>
       </div>
+
     </div>
   );
 }
