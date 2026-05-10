@@ -80,6 +80,9 @@ function App() {
     initStats();
   }, []);
 
+  // スマホ判定（演出をカットして高速化するため）
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   // スピード計測
   useEffect(() => {
     if (!debouncedUrl) {
@@ -93,12 +96,15 @@ function App() {
       const time = Math.max(0.0001, ((end - start) / 1000) + (Math.random() * 0.0004)).toFixed(4);
       setGenerateTime(time);
 
+      // スマホの場合は演出をスキップして最速化
+      if (isMobile) return;
+
       try {
         const confettiModule = await import('canvas-confetti');
         type ConfettiFn = (opts: Record<string, unknown>) => void;
         const fireConfetti = (confettiModule.default ?? confettiModule) as unknown as ConfettiFn;
         fireConfetti({
-          particleCount: 100,
+          particleCount: 80, // 100から少し減らしてPCでもよりスムーズに
           spread: 80,
           origin: { y: 0.5 },
           colors: ['#10b981', '#34d399', '#fff9c4', '#ffffff'] // ダークテーマに映える色
