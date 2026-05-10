@@ -8,6 +8,13 @@ declare const __APP_VERSION__: string;
 
 function App() {
   const [url, setUrl] = useState('');
+  const [debouncedUrl, setDebouncedUrl] = useState('');
+
+  // iOSでの入力中断（1文字しか入らない問題）や、重いエフェクトの連発を防ぐための遅延処理
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedUrl(url), 500);
+    return () => clearTimeout(timer);
+  }, [url]);
   const [withLogo, setWithLogo] = useState(true);
   const [generateTime, setGenerateTime] = useState<string>('0.000');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -75,7 +82,7 @@ function App() {
 
   // スピード計測
   useEffect(() => {
-    if (!url) {
+    if (!debouncedUrl) {
       const id = requestAnimationFrame(() => setGenerateTime('0.000'));
       return () => cancelAnimationFrame(id);
     }
@@ -268,7 +275,7 @@ function App() {
         <div className="sticky-wrapper" style={{ opacity: url ? 1 : 0.2, transition: 'opacity 0.4s ease' }}>
           <StickyNote 
             id="qr-sticky-note"
-            url={url || "https://ore-no-fusen.vercel.app"} 
+            url={debouncedUrl || "https://ore-no-fusen.vercel.app"} 
             color="#fff9c4" 
             text={withLogo ? "powered by 俺の付箋" : ""} 
           />
