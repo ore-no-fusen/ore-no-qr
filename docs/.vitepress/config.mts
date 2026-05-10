@@ -5,7 +5,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 export default withMermaid(defineConfig({
   title: '俺のQR',
   description: 'DESIGN DOCS PORTAL',
-  base: '/docs/',
+  base: '/ore-no-qr/',
   mermaid: {
     sequence: {
       messageMargin: 12,
