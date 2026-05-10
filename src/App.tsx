@@ -114,7 +114,7 @@ function App() {
       setTimeout(() => setSuccessMessage(null), 2500);
     });
     return () => cancelAnimationFrame(rafId);
-  }, [url]);
+  }, [debouncedUrl]);
 
   const handleDownload = async () => {
     if (!url) return;
