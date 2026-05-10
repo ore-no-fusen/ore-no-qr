@@ -12,7 +12,7 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "test:e2e": "playwright test",
-    "postversion": "git push && git push --tags"
+    "release": "node scripts/release.js"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
