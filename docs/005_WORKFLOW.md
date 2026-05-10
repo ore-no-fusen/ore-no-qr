@@ -56,8 +56,8 @@ graph TD
     H -->|NG| B
     H -->|OK| I[⑦ mainへマージ承認]
     I --> J((3️⃣ Vercel 本番自動リリース))
-    J --> K[⑧ バージョン採番&Push]
-    K --> L[⑨ GitHub Releasesノート作成]
+    J --> K["⑧ npm run release を実行"]
+    K --> L[⑨ GitHub Releasesノート自動作成]
     
     classDef human fill:#1f2937,stroke:#374151,stroke-width:2px,color:#f3f4f6;
     classDef auto fill:#065f46,stroke:#047857,stroke-width:2px,color:#ffffff;
