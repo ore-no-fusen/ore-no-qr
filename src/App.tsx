@@ -118,7 +118,7 @@ function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#fff9c4';
     ctx.fillRect(0, 0, 600, 600);
 
     const qrSize = 400;
@@ -207,7 +207,7 @@ function App() {
       {/* Header */}
       <div style={{ textAlign: 'center' }} className="animate-fade-in">
         <h1 className="hero-title">俺のQR</h1>
-        <p className="hero-subtitle">URLをいれるだけ。世界一シンプルなQRコード作成ツール。</p>
+        <p className="hero-subtitle">URLをいれるだけ。世界一シンプルなQR付箋。</p>
       </div>
 
       {/* Main Glass Panel */}
@@ -284,7 +284,7 @@ function App() {
           disabled={!url}
           className="premium-button"
         >
-          QRコードを保存する
+          QR付箋を保存する
         </button>
       </div>
 
