@@ -7,6 +7,7 @@
 完全無料 / ログイン不要 / 履歴保存なし
 
 [![Vercel](https://img.shields.io/badge/deploy-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
+[![Release](https://img.shields.io/github/v/release/ore-no-fusen/ore-no-qr?label=release&style=flat-square)](https://github.com/ore-no-fusen/ore-no-qr/releases)
 [![Firebase](https://img.shields.io/badge/DB-Firebase-orange?style=flat-square&logo=firebase)](https://firebase.google.com)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
