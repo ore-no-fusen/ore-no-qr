@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "俺のQR"
   text: "DESIGN DOCS PORTAL"
-  tagline: URLをいれるだけ。世界一シンプルなQR付箋。
+  tagline: 世界一シンプルなQRコードメーカー。わずか0.01秒でQRコードを表示。
   actions:
     - theme: brand
       text: ドキュメントを読む

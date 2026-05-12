@@ -29,3 +29,5 @@ test-results/
 
 # VitePress cache
 docs/.vitepress/cache
+docs/.vitepress/.temp
+docs/.vitepress/dist

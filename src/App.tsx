@@ -43,20 +43,21 @@ function App() {
         const today = getTodayStr();
         const globalRef = doc(db, 'stats', 'global');
         const dailyRef = doc(db, 'stats', today);
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        if (isLocal) {
+          return;
+        }
 
         // このブラウザで今日すでにカウント済みかチェック
         const visitedKey = `visited_${today}`;
         const hasVisitedToday = localStorage.getItem(visitedKey);
 
         if (!hasVisitedToday) {
-          // ローカル開発環境では本番DBを汚さないようカウントアップ通信をスキップ
-          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-          if (!isLocal) {
-            await Promise.all([
-              setDoc(globalRef, { totalVisitors: increment(1) }, { merge: true }),
-              setDoc(dailyRef, { dailyVisitors: increment(1) }, { merge: true })
-            ]);
-          }
+          await Promise.all([
+            setDoc(globalRef, { totalVisitors: increment(1) }, { merge: true }),
+            setDoc(dailyRef, { dailyVisitors: increment(1) }, { merge: true })
+          ]);
           localStorage.setItem(visitedKey, 'true');
         }
 
@@ -244,7 +245,10 @@ function App() {
       {/* Header */}
       <div style={{ textAlign: 'center' }} className="animate-fade-in">
         <h1 className="hero-title">俺のQR</h1>
-        <p className="hero-subtitle">URLをいれるだけ。世界一シンプルなQR付箋。</p>
+        <p className="hero-subtitle">
+          世界一シンプルなQRコードメーカー<br />
+          わずか0.01秒でQRコードを表示
+        </p>
       </div>
 
       {/* Main Glass Panel */}
@@ -255,7 +259,7 @@ function App() {
             type="text" 
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="URLを入力してください (https://...)"
+            placeholder="URLを入力してください"
             className="premium-input"
           />
           <div style={{ 
@@ -321,8 +325,11 @@ function App() {
           disabled={!url}
           className="premium-button"
         >
-          QR付箋を保存する
+          QRコードを保存する
         </button>
+        <p className="mobile-help-text">
+          iPhoneの方はスクショして、カメラから画像を選んで画像のQR部分を長押しするとURLに飛べます
+        </p>
       </div>
 
       {/* Stats Panel */}
